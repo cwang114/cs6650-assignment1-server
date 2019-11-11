@@ -1,8 +1,8 @@
-package com.lion.skiresortbackend.resort;
+package com.lion.skiresortbackend.controller;
 
 import java.net.URI;
 import java.util.List;
-
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,8 +18,12 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.lion.skiresortbackend.entity.Resort;
+import com.lion.skiresortbackend.entity.Season;
 import com.lion.skiresortbackend.exception.InvalidSeasonException;
 import com.lion.skiresortbackend.exception.ResortNotFoundException;
+import com.lion.skiresortbackend.repository.ResortRepository;
+import com.lion.skiresortbackend.repository.SeasonRepository;
+import com.lion.skiresortbackend.util.SeasonListWrapper;
 
 
 @RestController
@@ -28,49 +32,59 @@ public class ResortController {
 	
 	@Autowired
 	private ResortRepository resortRepository;
+	@Autowired
+	private SeasonRepository seasonRepository;
 	
 	final static Logger logger = LoggerFactory.getLogger(ResortController.class);
 	
 	@GetMapping(path="")
 	public List<Resort> getResorts() {
 		logger.debug("Calling getResorts()");
-		return resortRepository.findAll();
+		List<Resort> resorts = resortRepository.findAll();
+		return resorts;
+	}
+	
+	@PostMapping(path="")
+	public ResponseEntity<?> addResort(@RequestBody Resort resort) {
+		resortRepository.save(resort);
+		URI location = ServletUriComponentsBuilder
+    			.fromCurrentRequest()
+    			.buildAndExpand(resort.getResortId())
+    			.toUri();
+        return ResponseEntity.created(location).build();
 	}
 	
 	@GetMapping("/{resortId}/seasons")
-    public List<Integer> getResortSeasons(@PathVariable(value = "resortId") int resortId) {
-        Resort resort = resortRepository.findResortByResortId(resortId);
-        if (resort == null) {
+    public SeasonListWrapper getResortSeasons(@PathVariable(value = "resortId") int resortId) {
+        if (!resortRepository.existsById(resortId)) {
         	throw new ResortNotFoundException("No resort id: " + resortId);
         }
-        return resort.getSeasons();
+        List<Season> seasonList = seasonRepository.findByResortResortId(resortId);
+        List<Integer> seasons = seasonList.stream().map(season -> season.getSeason()).collect(Collectors.toList());
+        SeasonListWrapper seasonWrapper = new SeasonListWrapper(seasons);
+        return seasonWrapper;
         
     }
 	
 	@PostMapping("/{resortId}/seasons")
     public ResponseEntity<?> addSeason(@PathVariable (value = "resortId") int resortId,
-                          			   @RequestBody ObjectNode season) {
-		Resort resort = resortRepository.findResortByResortId(resortId);
-        if (resort == null) {
+                          			   @RequestBody ObjectNode seasonFromRequest) {
+		
+        if (!resortRepository.existsById(resortId)) {
         	throw new ResortNotFoundException("No resort id: " + resortId);
         }
-        List<Integer> seasons = resort.getSeasons();
-        if (season.get("year") == null) {
+        if (seasonFromRequest.get("year") == null) {
         	throw new InvalidSeasonException("Invalid request of adding season.");
         }
-        int year = season.get("year").asInt();
-        seasons.add(year);
-        resort.setSeasons(seasons);
+        int year = seasonFromRequest.get("year").asInt();
+        Resort resort = resortRepository.findById(resortId).get();
+        Season season = new Season(year, resort);
+        seasonRepository.save(season);
         URI location = ServletUriComponentsBuilder
     			.fromCurrentRequest()
-    			.buildAndExpand(resort.getResortId())
+    			.buildAndExpand(resortId)
     			.toUri();
         return ResponseEntity.created(location).build();
      
     }
-	
-	
-	
-	
-
 }

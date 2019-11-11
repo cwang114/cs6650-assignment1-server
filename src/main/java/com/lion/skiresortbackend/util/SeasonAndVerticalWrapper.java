@@ -1,4 +1,4 @@
-package com.lion.skiresortbackend.entity;
+package com.lion.skiresortbackend.util;
 
 import java.util.List;
 

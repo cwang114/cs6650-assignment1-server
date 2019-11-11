@@ -1,36 +1,41 @@
 package com.lion.skiresortbackend.entity;
 
-import java.util.ArrayList;
-import java.util.List;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.EntityListeners;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Table;
 
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 /**
  * Represent a single ski resort.
  * @author lion
  *
  */
-
+@Entity
+@Table(name = "Resort")
+@EntityListeners(AuditingEntityListener.class)
 public class Resort {
 	
-	private String resortName;
-	
-	@Min(0)@Max(10)
+	@Id
+	@GeneratedValue(strategy=GenerationType.IDENTITY)
+	@Column(name="resortid")
 	private int resortId;
 	
-	@JsonIgnore
-	private List<Integer> seasons;
+	@Column(name="resortname")
+	private String resortName;
 	
+	public Resort() {
+	}
 	
-	public Resort(String resortName, int resortId) {
+	public Resort(String resortName) {
 		super();
 		this.resortName = resortName;
-		this.resortId = resortId;
-		this.seasons = new ArrayList<>();
 	}
+	
 	public String getResortName() {
 		return resortName;
 	}
@@ -43,13 +48,6 @@ public class Resort {
 	public void setResortId(int resortId) {
 		this.resortId = resortId;
 	}
-	public List<Integer> getSeasons() {
-		return seasons;
-	}
-	public void setSeasons(List<Integer> seasons) {
-		this.seasons = seasons;
-	}
-	
 	
 	
 }
